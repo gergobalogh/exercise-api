@@ -30,7 +30,7 @@ app.post('/api/generate-workout', async (c) => {
             return `${date}:\n${dayExercises}`;
         }).join("\n");
         const formattedCardioData = previousCardioData.map(cardio => {
-            return ` ${cardio.date}: ${cardio.type} km in ${cardio.duration} min (Avg HR: ${cardio.avgHeartRate} bpm). Notes: ${run.notes}`
+            return ` ${cardio.date}: ${cardio.type} km in ${cardio.duration} min (Avg HR: ${cardio.avgHeartRate} bpm). Notes: ${cardio.notes}`
         }).join("\n");
         const workoutSystemPrompt =
             "You are a certified personal trainer and endurance coach specializing in triathlon prep. " +
@@ -48,7 +48,7 @@ app.post('/api/generate-workout', async (c) => {
                 'Authorization': `Bearer ${OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: GPT_MODEL,
+                model: 'gpt-3.5-turbo',
                 messages: [
                     {role: "system", content: workoutSystemPrompt},
                     {role: "user", content: workoutUserPrompt}
@@ -84,7 +84,6 @@ app.post("/api/critique-workout", async (c) => {
         }
 
         // Prepare the OpenAI API request
-        let GPT_MODEL;
         const options = {
             method: 'POST',
             headers: {
@@ -92,7 +91,7 @@ app.post("/api/critique-workout", async (c) => {
                 'Authorization': `Bearer ${OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                "model": GPT_MODEL,
+                "model": 'gpt-3.5-turbo',
                 "messages": [
                     {
                         "role": "system",
