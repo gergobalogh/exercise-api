@@ -29,7 +29,7 @@ app.post('/api/generate-workout', async (c) => {
             const dayExercises = workouts.map(w => `  - ${w.name}: ${w.sets}x${w.reps} @ ${w.weight}kg (${w.notes})`).join("\n");
             return `${date}:\n${dayExercises}`;
         }).join("\n");
-        const formattedCardioData = previous.map(cardio => {
+        const formattedCardioData = previousCardioData.map(cardio => {
             return ` ${cardio.date}: ${cardio.type} km in ${cardio.duration} min (Avg HR: ${cardio.avgHeartRate} bpm). Notes: ${run.notes}`
         }).join("\n");
         const workoutSystemPrompt =
