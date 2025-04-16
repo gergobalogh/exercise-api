@@ -35,11 +35,11 @@ app.post('/api/generate-workout', async (c) => {
         const workoutSystemPrompt =
             "You are a certified personal trainer and endurance coach specializing in triathlon prep. " +
             "Create clear, effective full-body strength workouts using simple gym equipment (kettlebells, dumbbells, barbells), followed by a running segment. " +
-            "Use the previous week's data to ensure progressive overload, balance, and recovery. "
+            "Use the previous week's data to ensure progressive overload, balance, and recovery."
         const workoutUserPrompt =
             `Based on the following previous weeks workout data:\n\n${formattedGroupedData}\n\n${formattedCardioData}\n\n` +
             "Give me a single full-body gym workout made up of multiple exercises using kettlebells, dumbbells, barbells, and other simple gym equipment. " +
-            "Include sets, reps, and rest time. Keep it balanced and intense. At the end, include a progressive cardio component like running, biking, stairmaster or indoor rowing.";
+            "Include sets, reps, and rest time. Keep it balanced and intense. End with an optimized cardio component that can be completed entirely inside a gym using standard equipment such as treadmills, stationary bikes, stairmasters, or rowing machines. Do not include swimming or running drills.";
 
         const options = {
             method: 'POST',
@@ -99,7 +99,7 @@ app.post("/api/critique-workout", async (c) => {
                     },
                     {
                         "role": "user",
-                        "content": `Review the following workout plan and provide your professional assessment:\n\n'${workoutDescription}'\n\nProvide feedback in these categories:\n1. Overall Structure and Balance\n2. Safety Considerations\n3. Effectiveness for Triathlon Preparation\n4. Progression from Previous Data\n5. Specific Recommendations for Improvement`
+                        "content": `Review the following workout plan and provide your professional assessment:\n\n'${workoutDescription}'\n\nProvide feedback in these categories:\n1. Overall Structure and Balance\n2. Safety Considerations\n3. Effectiveness for Triathlon Preparation\n4. Progression from Previous Data\n5. Specific Recommendations for Improvement. Ensure each section has a clear heading (e.g., Warm-up, Strength Training, Cardio Finisher, Cool-down) for easy parsing later into JSON.`
                     }
                 ],
                 "temperature": 0.7
