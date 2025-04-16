@@ -30,7 +30,7 @@ app.post('/api/generate-workout', async (c) => {
             return `${date}:\n${dayExercises}`;
         }).join("\n");
         const formattedCardioData = previousCardioData.map(cardio => {
-            return ` ${cardio.date}: ${cardio.type} km in ${cardio.duration} min (Avg HR: ${cardio.avgHeartRate} bpm). Notes: ${run.notes}`
+            return ` ${cardio.date}: ${cardio.type} km in ${cardio.duration} min (Avg HR: ${cardio.avgHeartRate} bpm). Notes: ${cardio.notes}`
         }).join("\n");
         const workoutSystemPrompt =
             "You are a certified personal trainer and endurance coach specializing in triathlon prep. " +
