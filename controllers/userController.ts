@@ -14,15 +14,30 @@ import { z } from "zod"
 
 
 export const addUser = async (c: Context) => {
-    const username= c.req.param("name");
-    const { data, error } = await supabase
-        .from('users')
-        .insert([
-            { name: 'someValue', other_column: 'otherValue' },
-        ])
-        .select()
-    if (error) throw error;
-    return data;
+    try {
+        const { name, weight, goal } = await c.req.json();
+
+        const { data, error } = await supabase
+            .from('users')
+            .insert([
+                {
+                    name,
+                    weight,
+                    goal
+                }
+            ])
+            .select();
+
+        if (error) {
+            console.error("Supabase insert error:", error);
+            return c.json({ error: error.message }, 500);
+        }
+
+        return c.json(data, 201);
+    } catch (err) {
+        console.error("Request parsing error:", err);
+        return c.json({ error: "Invalid request data" }, 400);
+    }
 };
 
 export const updateUser = async (c: Context) => {

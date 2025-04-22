@@ -1,10 +1,11 @@
 import { Context } from 'hono';
+import {getLatestAIRequest, logAIRequest} from "../utils/supabaseClient.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
 export const generateWorkout = async (c: Context) => {
     try {
-        const {previousWorkoutData, previousCardioData} = await c.req.json();
+        const {goal, previousWorkoutData, previousCardioData} = await c.req.json();
         const groupedByDate = {};
         previousWorkoutData?.forEach(w => {
             if (!groupedByDate[w.date]) groupedByDate[w.date] = [];
@@ -18,7 +19,7 @@ export const generateWorkout = async (c: Context) => {
             return ` ${cardio.date}: ${cardio.type} km in ${cardio.duration} min (Avg HR: ${cardio.avgHeartRate} bpm). Notes: ${cardio.notes}`
         }).join("\n");
         const workoutSystemPrompt =
-            "You are a certified personal trainer and endurance coach specializing in triathlon prep. " +
+            "You are a certified personal trainer and endurance coach. The user's goal is: " + goal
             "Create clear, effective full-body strength workouts using simple gym equipment (kettlebells, dumbbells, barbells), followed by a running segment. " +
             "Use the previous week's data to ensure progressive overload, balance, and recovery."
         const workoutUserPrompt =
@@ -41,16 +42,18 @@ export const generateWorkout = async (c: Context) => {
                 temperature: 0.7
             })
         };
-
+        const testResponse = await checkIfIsTest(c, 'generate-workout')
+        if(testResponse) return testResponse;
         const response = await fetch('https://api.openai.com/v1/chat/completions', options);
         const jsonResponse = await response.json();
-
         if (!response.ok) {
             console.error('OpenAI API error:', jsonResponse);
             return c.json({error: 'Failed to get workout from OpenAI', details: jsonResponse}, response.status);
         }
 
         const workout = jsonResponse.choices?.[0]?.message?.content || "No workout available.";
+        await logAIRequest('generate-workout', {goal, previousWorkoutData, previousCardioData}, workout)
+
         return c.json({workout});
 
     } catch (error) {
@@ -64,6 +67,7 @@ export const critiqueWorkout = async (c: Context) => {
         // Get the workout description from the request body
         const body = await c.req.json();
         const workoutDescription = body.workout;
+        const goal = body.goal;
 
         if (!workoutDescription) {
             return c.json({ error: "Workout description is required" }, 400);
@@ -81,22 +85,22 @@ export const critiqueWorkout = async (c: Context) => {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a certified strength and conditioning coach with expertise in triathlon training. Your job is to provide honest, constructive feedback on this workout, focusing on balance, safety, effectiveness, and appropriateness for triathlon preparation. Evaluate the progression from previous workouts, the exercise selection, volume, intensity, and recovery considerations. Suggest specific modifications if needed."
-                    },
+                        "content": `You are a certified strength and conditioning coach with expertise in personalized fitness programming. Your job is to provide honest, constructive feedback on the following workout plan, tailoring your evaluation based on the user's primary fitness goal: ${goal}. Focus on balance, safety, effectiveness, and alignment with that goal. Assess progression from previous workouts, the exercise selection, volume, intensity, and recovery. Suggest specific, actionable modifications where necessary.`
+                    }
+                    ,
                     {
                         "role": "user",
-                        "content": `Review the following workout plan and provide your professional assessment:\n\n'${workoutDescription}'\n\nProvide feedback in these categories:\n1. Overall Structure and Balance\n2. Safety Considerations\n3. Effectiveness for Triathlon Preparation\n4. Progression from Previous Data\n5. Specific Recommendations for Improvement. Ensure each section has a clear heading (e.g., Warm-up, Strength Training, Cardio Finisher, Cool-down) for easy parsing later into JSON.`
+                        "content": `Review the following workout plan and provide your professional assessment based on the user's goal: ${goal}.\n\n'${workoutDescription}'\n\nPlease structure your feedback under the following categories:\n1. Overall Structure and Balance\n2. Safety Considerations\n3. Effectiveness for ${goal}\n4. Progression from Previous Data\n5. Specific Recommendations for Improvement\n\nEnsure each section of the workout (e.g., Warm-up, Strength Training, Cardio Finisher, Cool-down) is clearly identified with appropriate headings for later parsing into JSON.`
                     }
                 ],
                 "temperature": 0.7
             })
         };
-
-        // Make the request to OpenAI API
+        const testResponse = await checkIfIsTest(c, 'critique-workout')
+        if(testResponse) return testResponse;
         const response = await fetch('https://api.openai.com/v1/chat/completions', options);
         const data = await response.json();
-
-        // Return the OpenAI response
+        await logAIRequest("critique-workout", {body}, data.choices?.[0]?.message?.content)
         return c.json(data.choices?.[0]?.message?.content || "No feedback available.");
     } catch (error) {
         console.error("Error processing request:", error);
@@ -133,7 +137,8 @@ export const optimizeWorkout = async (c: Context) => {
                 "temperature": 0.7
             })
         };
-
+        const testResponse = await checkIfIsTest(c, 'workout-optimization')
+        if(testResponse) return testResponse;
         const response = await fetch('https://api.openai.com/v1/chat/completions', options);
 
         if (!response.ok) {
@@ -142,6 +147,7 @@ export const optimizeWorkout = async (c: Context) => {
         }
 
         const data = await response.json();
+        await logAIRequest("workout-optimization", {workout, feedback}, data.choices?.[0]?.message?.content)
         return c.json(data.choices?.[0]?.message?.content || "No ultimate workout available.");
     } catch (err) {
         console.error("Error:", err);
@@ -203,7 +209,8 @@ export const workoutToJson = async (c: Context) => {
                 "temperature": 0.7
             })
         };
-
+        const testResponse = await checkIfIsTest(c, 'workout-to-json')
+        if(testResponse) return testResponse;
         const response = await fetch('https://api.openai.com/v1/chat/completions', options);
 
         if (!response.ok) {
@@ -212,6 +219,7 @@ export const workoutToJson = async (c: Context) => {
         }
 
         const data = await response.json();
+        await logAIRequest("workout-to-json", {workout}, data.choices?.[0]?.message?.content)
         return c.json(data.choices?.[0]?.message?.content || "No workout JSON available.");
     } catch (err) {
         console.error("Error:", err);
@@ -258,4 +266,16 @@ export const getExerciseInstructions = async (c: Context) => {
         console.error("Error generating exercise instruction:", error);
         return c.json({ error: "Failed to fetch exercise instructions." }, 500);
     }
+}
+
+async function checkIfIsTest(
+    c: Context,
+    request_type: 'generate-workout' | 'critique-workout' | 'workout-optimization' | 'workout-to-json',
+) {
+    const {test} = c.req.query()
+    if(test === 'true') {
+        const mock = await getLatestAIRequest(request_type);
+        return c.json(mock?.output_data || "No test data found.");
+    }
+    return null;
 }

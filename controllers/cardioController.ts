@@ -47,17 +47,19 @@ export const getCardioForLastSevenDays = async (c: Context) => {
             .order("date", { ascending: false });
 
         if (error) throw error;
+        if(data.length > 0) {
+            const cardioExercises = (data || []).map(entry => ({
+                type: entry.type,
+                date: entry.date,
+                duration: entry.duration,
+                distance: entry.distance,
+                notes: entry.notes,
+            }));
 
-        // Shape each entry to include `type` and details like in the original
-        const cardioExercises = (data || []).map(entry => ({
-            type: entry.type,
-            date: entry.date,
-            duration: entry.duration,
-            distance: entry.distance,
-            notes: entry.notes,
-        }));
-
-        return c.json(cardioExercises);
+            return c.json(cardioExercises);
+        }
+        c.status(204)
+        return c.body()
     } catch (error) {
         return c.json({ error: error.message }, 500);
     }

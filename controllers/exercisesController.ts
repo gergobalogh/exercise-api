@@ -18,7 +18,6 @@ const ExerciseSchema = z.object({
 export const getLatest = async(c: Context) => {
     const userId = c.req.param("userId");
     const exerciseName = c.req.param("exerciseName");
-    console.log(exerciseName)
     try {
         const { data, error } = await supabase
             .from("exercises")
@@ -64,7 +63,8 @@ export const getLastSevenDaysExercises = async (c: Context) => {
         if(data.length > 0){
             return c.json({ data }, 200);
         }
-        return c.notFound()
+        c.status(204)
+        return c.body()
     } catch (error) {
         return c.json({ error: error.message }, 400);
     }
