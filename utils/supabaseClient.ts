@@ -1,7 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-const supabaseUrl = "https://begcfaxvjbeizhacrzft.supabase.co";
-//@TODO this must be resolved via key.
-const supabaseKey = "REMOVED_SUPABASE_KEY";
+const supabaseUrl = Deno.env.get("SUPABASE_URL");
+const supabaseKey = Deno.env.get("SUPABASE_KEY");
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error("Set SUPABASE_URL and SUPABASE_KEY");
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
